@@ -1,0 +1,10 @@
+# Caddy reverse proxy for the SaveBridge server.
+# Replace dl.example.com with YOUR domain. Caddy fetches a free Let's Encrypt
+# certificate automatically, so the extension can talk to it over https.
+#
+# Run:  caddy run --config deploy/Caddyfile
+
+dl.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8723
+}

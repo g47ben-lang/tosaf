@@ -1,0 +1,23 @@
+# systemd unit to keep the SaveBridge server running on a VM (e.g. Oracle Cloud).
+# Copy to /etc/systemd/system/savebridge.service, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now savebridge
+#
+# Adjust User and the two paths to match where you cloned the repo.
+
+[Unit]
+Description=SaveBridge personal download server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/tosaf
+ExecStart=/home/ubuntu/tosaf/.venv/bin/uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
+Restart=on-failure
+RestartSec=3
+# Optional: set a fixed token shared with nothing else.
+# Environment=SAVEBRIDGE_TOKEN=change-me
+
+[Install]
+WantedBy=multi-user.target
