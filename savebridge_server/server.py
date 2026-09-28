@@ -67,8 +67,9 @@ async def ping() -> JSONResponse:
 @app.post("/api/start")
 async def start(request: Request) -> JSONResponse:
     payload = await request.json()
-    if not payload.get("url"):
-        return JSONResponse({"error": "missing url"}, status_code=400)
+    resolved = payload.get("resolved") or {}
+    if not payload.get("url") and not (resolved.get("video") or resolved.get("audio")):
+        return JSONResponse({"error": "missing url or resolved.video/resolved.audio"}, status_code=400)
     job_id = jobs.start(payload)
     return JSONResponse({"jobId": job_id})
 

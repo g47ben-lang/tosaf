@@ -1,0 +1,41 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+  <head>
+    <meta charset="utf-8" />
+    <title>SaveBridge — הגדרות</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 420px; margin: 24px auto; padding: 0 16px; }
+      h1 { font-size: 18px; }
+      label { display: block; margin: 16px 0 6px; font-size: 13px; color: #444; }
+      input[type="text"] { width: 100%; padding: 6px; box-sizing: border-box; }
+      .row { display: flex; align-items: center; gap: 8px; }
+      button { padding: 8px 16px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; margin-top: 16px; }
+      .hint { font-size: 12px; color: #777; margin-top: 4px; }
+      .saved { color: #15803d; font-size: 13px; margin-inline-start: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>SaveBridge — הגדרות</h1>
+
+    <label for="serverUrl">כתובת השרת</label>
+    <input type="text" id="serverUrl" placeholder="http://127.0.0.1:8723" />
+    <div class="hint">
+      מקומי: <code>http://127.0.0.1:8723</code>. מרוחק: הכתובת שהגדרת עם Caddy.
+      אם משנים לכתובת מרוחקת חדשה — צריך גם להוסיף אותה ל-<code>host_permissions</code>
+      ב-<code>manifest.json</code> ולטעון מחדש את התוסף.
+    </div>
+
+    <div class="row">
+      <input type="checkbox" id="encryptDownloads" />
+      <label for="encryptDownloads" style="margin:0">הצפן הורדות (רק לשרת מרוחק)</label>
+    </div>
+    <div class="hint">במצב מקומי (127.0.0.1) אין צורך — ההעברה כולה בתוך המחשב.</div>
+
+    <div class="row">
+      <button id="save">שמור</button>
+      <span class="saved hidden" id="savedMsg">נשמר ✓</span>
+    </div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+  <head>
+    <meta charset="utf-8" />
+    <title>SaveBridge</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>SaveBridge</h1>
+      <button id="openOptions" title="הגדרות">⚙️</button>
+    </header>
+
+    <div id="notYoutube" class="hint hidden">פתח וידאו ביוטיוב כדי להוריד.</div>
+
+    <div id="videoInfo" class="hidden">
+      <div class="title" id="videoTitle"></div>
+    </div>
+
+    <form id="downloadForm" class="hidden">
+      <label>
+        פורמט
+        <select id="format">
+          <option value="video">וידאו</option>
+          <option value="audio">אודיו (MP3)</option>
+          <option value="low_phone">טלפון ישן (3gp)</option>
+        </select>
+      </label>
+
+      <label id="qualityRow">
+        איכות
+        <select id="quality">
+          <option value="best">הכי טובה</option>
+          <option value="1080">1080p</option>
+          <option value="720">720p</option>
+          <option value="480">480p</option>
+        </select>
+      </label>
+
+      <label id="audioLangRow" class="hidden">
+        שפת אודיו
+        <select id="audioLang"><option value="">ברירת מחדל</option></select>
+      </label>
+
+      <label id="subLangRow" class="hidden">
+        כתוביות
+        <select id="subLang"><option value="">ללא</option></select>
+      </label>
+
+      <button type="submit" id="startBtn">הורד</button>
+    </form>
+
+    <div id="progress" class="hidden">
+      <div class="bar"><div class="fill" id="progressFill"></div></div>
+      <div class="status" id="progressStatus"></div>
+      <button id="cancelBtn" class="secondary">בטל</button>
+    </div>
+
+    <div id="errorBox" class="error hidden"></div>
+    <div id="doneBox" class="done hidden">הקובץ נשמר ✓</div>
+
+    <footer>
+      <span id="serverStatus">בודק שרת…</span>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "SaveBridge — הורדה מיוטיוב",
+  "version": "1.0.0",
+  "description": "בוחר איכות ומוריד דרך שרת אישי (SaveBridge). מקרא את הקישורים מהטאב האמיתי, ללא פרוקסי.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SaveBridge"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "downloads",
+    "offscreen",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "http://127.0.0.1:8723/*"
+  ]
+}

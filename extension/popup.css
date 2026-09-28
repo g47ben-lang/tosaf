@@ -1,0 +1,97 @@
+body {
+  width: 300px;
+  font-family: system-ui, sans-serif;
+  padding: 12px;
+  margin: 0;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+h1 {
+  font-size: 15px;
+  margin: 0;
+}
+header button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+.hidden {
+  display: none !important;
+}
+.hint {
+  color: #666;
+  font-size: 13px;
+  padding: 8px 0;
+}
+.title {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 8px;
+  max-height: 3.2em;
+  overflow: hidden;
+}
+form label {
+  display: block;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 8px;
+}
+form select {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  padding: 4px;
+}
+button[type="submit"],
+#cancelBtn {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+#cancelBtn.secondary {
+  background: #999;
+}
+.bar {
+  background: #eee;
+  border-radius: 6px;
+  height: 8px;
+  overflow: hidden;
+}
+.fill {
+  background: #2563eb;
+  height: 100%;
+  width: 0%;
+  transition: width 0.2s;
+}
+.status {
+  font-size: 12px;
+  color: #444;
+  margin: 6px 0;
+}
+.error {
+  color: #b91c1c;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.done {
+  color: #15803d;
+  font-size: 13px;
+  margin-top: 8px;
+}
+footer {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+}

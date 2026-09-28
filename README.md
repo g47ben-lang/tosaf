@@ -31,7 +31,8 @@ pip install -r requirements.txt
 uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
 ```
 
-בתוסף: הפנה את `SERVER_URL` אל `http://127.0.0.1:8723` (ראה "שינויים בתוסף").
+בתוסף (`extension/`, ראה "חיבור לתוסף" למטה) — ברירת המחדל כבר
+`http://127.0.0.1:8723`, אין צורך לשנות כלום למצב מקומי.
 במצב מקומי אין צורך בהצפנה — ההעברה כולה בתוך המחשב. אין צורך גם בפרוקסי:
 ה-IP שלך כבר ביתי, לא דאטה-סנטר.
 
@@ -50,33 +51,24 @@ uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
 
 עדכון yt-dlp מדי פעם (יוטיוב משתנה): `./.venv/bin/pip install -U yt-dlp`.
 
-## שינויים בתוסף
+## חיבור לתוסף
 
-1. **`background.js`** — החלף את השורה:
-   ```js
-   var SERVER_URL = "https://extsync.com/sb-relay";
-   ```
-   בכתובת השרת שלך (`http://127.0.0.1:8723` מקומי, או `https://הדומיין-שלך`).
+התוסף נמצא בתיקייה [`extension/`](extension/) בריפו הזה (הותקן כ-unpacked
+דרך `chrome://extensions`, ראה `extension/README.md` להוראות מלאות).
+שינויים נדרשים בשימוש מרוחק:
 
-2. **`manifest.json`** — הוסף את הכתובת ל-`host_permissions`:
+1. **הגדרות התוסף** (⚙️ בפופאפ, או Details → Extension options) — עדכן את
+   כתובת השרת ל-`https://הדומיין-שלך` והדלק "הצפן הורדות".
+
+2. **`extension/manifest.json`** — הוסף את הכתובת ל-`host_permissions`:
    ```json
    "host_permissions": [
      "https://*.youtube.com/*",
-     "https://*.google.com/*",
      "http://127.0.0.1:8723/*",
      "https://הדומיין-שלך/*"
    ]
    ```
-
-3. **הצפנה (מרוחק בלבד)** — הדלק את `encryptDownloads` בהגדרות התוסף.
-   אם אין מתג בעמוד ההגדרות, אפשר להדליק ידנית מ-Console של התוסף:
-   ```js
-   chrome.storage.local.get("savebridge", (o) => {
-     const s = o.savebridge || {};
-     s.encryptDownloads = true;
-     chrome.storage.local.set({ savebridge: s });
-   });
-   ```
+   אחרי עריכה, טען מחדש את התוסף (כפתור הריענון ב-`chrome://extensions`).
 
 ## שני מסלולי הורדה — ולמה לתוספים חינמיים אין פרוקסי
 
@@ -112,11 +104,11 @@ Botguard) וממזג וידאו+אודיו עם ffmpeg. קישורים כאלה 
   720p) — משמיטים את `resolved.audio` והשרת לא ממזג, רק שומר את הקובץ כמו שהוא.
 - `resolved.subtitle` אופציונלי, מוטמע בקובץ הסופי.
 
-**⚠️ החלק שחסר: זה דורש שינוי בתוסף עצמו** (קוד ה-content script /
-background.js) — לחלץ את הקישורים האלה מהעמוד ולשלוח אותם ב-`resolved`
-במקום רק `url`. קוד התוסף (`background.js`, `manifest.json`,
-`offscreen.js`) **לא נמצא בריפו הזה** — רק קוד השרת. אם תרצה, צרף את ריפו
-התוסף לסשן ואבנה גם את הצד הזה; או תגיד לי איפה הוא ואני אמשיך.
+**התוסף עצמו נמצא בתיקיית [`extension/`](extension/)** — Chrome MV3, בנוי
+מחדש בתוך הריפו הזה (הקודם לא נמצא). קורא בדיוק את מה שמתואר למעלה
+(`ytInitialPlayerResponse` דרך הזרקת סקריפט ל-world הראשי של הדף), בונה
+את `resolved` ושולח ל-`/api/start`. פרטי התקנה, איך זה עובד, ומגבלות ידועות
+ב-`extension/README.md`.
 
 **מסלול 2 — `yt-dlp` על השרת עצמו (`url`, גיבוי, דורש פרוקסי).** לשימוש
 כשאין `resolved` בבקשה — למשל אם התוסף עדיין לא עודכן, או שמישהו מדביק
@@ -168,4 +160,5 @@ python tests/test_crypto_matches_extension.py   # תואמות פורמט ההצ
 python tests/test_server_file_flow.py            # מחזור עבודה + הזרמת קובץ
 python tests/test_ytdlp_opts.py                  # חיווט proxy/impersonate/player_clients (מסלול 2)
 python tests/test_resolved_download.py           # הורדה מקישורים מוכנים + מיזוג ffmpeg (מסלול 1)
+python tests/test_start_endpoint.py              # /api/start מקבל resolved בלי url
 ```
