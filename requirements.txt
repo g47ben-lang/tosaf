@@ -2,6 +2,7 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 yt-dlp>=2024.1.0
 cryptography>=42.0
+requests>=2.31
 # TLS fingerprint impersonation (mimics real Chrome's TLS/HTTP2 handshake).
 curl_cffi>=0.7
 # PO Token provider plugin for yt-dlp; talks to the bgutil sidecar server

@@ -13,6 +13,7 @@ from typing import Optional
 import yt_dlp
 
 from .crypto_stream import EncSession, new_session
+from .resolved_download import ResolveError, convert_low_phone, download_resolved
 from .ytdlp_opts import build_ydl_opts
 
 # status values the extension understands
@@ -196,6 +197,48 @@ class JobManager:
 
     def _download(self, job: Job, payload: dict, cookiefile: Optional[str]) -> None:
         job.status = DOWNLOADING
+        resolved = payload.get("resolved")
+        if resolved:
+            # Fast path: the extension already resolved playable CDN URLs
+            # from inside the real tab (real cookies/PO Token/IP/TLS), so
+            # this is a plain HTTP fetch + ffmpeg mux — no yt-dlp, no
+            # proxy needed. See resolved_download.py for why that's safe.
+            final = self._download_resolved(job, resolved)
+        else:
+            final = self._download_ytdlp(job, payload, cookiefile)
+
+        if job._cancel.is_set():
+            raise _Cancelled()
+        if not final:
+            raise RuntimeError("output file not found after download")
+
+        job.file_path = final
+        job.file_name = os.path.basename(final)
+        job.percent = 100.0
+        job.speed = None
+        job.eta = None
+        job.status = COMPLETED
+
+    def _download_resolved(self, job: Job, resolved: dict) -> str:
+        def on_progress(pct: float) -> None:
+            job.percent = min(99.0, pct)
+
+        try:
+            final = download_resolved(
+                work_dir=job.work_dir,
+                fmt=job.fmt,
+                resolved=resolved,
+                cancel_check=job._cancel.is_set,
+                on_progress=on_progress,
+            )
+        except ResolveError as err:
+            raise RuntimeError(str(err)) from err
+
+        if job.fmt == "low_phone":
+            final = convert_low_phone(final, job.work_dir)
+        return final
+
+    def _download_ytdlp(self, job: Job, payload: dict, cookiefile: Optional[str]) -> Optional[str]:
         outtmpl = os.path.join(job.work_dir, "%(title).150B.%(ext)s")
         opts = build_ydl_opts(
             fmt=job.fmt,
@@ -216,16 +259,7 @@ class JobManager:
         if job._cancel.is_set():
             raise _Cancelled()
 
-        final = self._resolve_output(job, info)
-        if not final:
-            raise RuntimeError("output file not found after download")
-
-        job.file_path = final
-        job.file_name = os.path.basename(final)
-        job.percent = 100.0
-        job.speed = None
-        job.eta = None
-        job.status = COMPLETED
+        return self._resolve_output(job, info)
 
     def _resolve_output(self, job: Job, info: dict) -> Optional[str]:
         """Pick the finished media file out of the job dir.

@@ -78,32 +78,70 @@ uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
    });
    ```
 
-## למה חובה פרוקסי, ואיך זה עובד
+## שני מסלולי הורדה — ולמה לתוספים חינמיים אין פרוקסי
 
-יוטיוב חוסמת שרתים לא רק לפי עוגיות — היא בודקת גם PO Token (Botguard), את
-כתובת ה-IP (דאטה-סנטר מזוהה מיידית), ואת טביעת האצבע של חיבור ה-TLS. השרת
-כאן מטפל בשלוש השכבות האלה:
+יש שתי דרכים לגיטימיות לגמרי להשיג את קובץ הווידאו, וההבדל ביניהן הוא בדיוק
+התשובה לשאלה "איך תוספים חינמיים עובדים בלי פרוקסי":
+
+**מסלול 1 — חילוץ בתוך הדפדפן עצמו (`resolved`, ברירת המחדל, בלי פרוקסי).**
+זה מה שרוב התוספים החינמיים עושים בפועל. הטאב האמיתי של יוטיוב כבר עשה את כל
+העבודה הקשה: יש לו את העוגיות האמיתיות, הוא כבר הריץ את קוד ה-Botguard וקיבל
+PO Token תקף, הבקשה יוצאת מה-IP הביתי האמיתי שלך, ודרך מחסנית ה-TLS האמיתית
+של Chrome. כל זה קורה **בלי שום קוד שלנו נוגע בו** — זו פשוט הדפדפן. מה
+שהתוסף צריך לעשות הוא רק *לקרוא* את הקישורים החתומים ל-`googlevideo.com` שהעמוד
+כבר קיבל (מתוך `ytInitialPlayerResponse.streamingData`, או ע"י האזנה
+לבקשות `videoplayback` שהנגן עצמו כבר שולח), ולשלוח אותם לשרת. השרת רק מוריד
+את הבייטים מהקישור המוכן הזה (בקשת HTTP רגילה, בלי yt-dlp, בלי PO Token, בלי
+Botguard) וממזג וידאו+אודיו עם ffmpeg. קישורים כאלה תקפים לכמה שעות ולא
+נבדקים שוב מול Botguard בכל צ'אנק — זו הסיבה שזה עובד מכל שרת, גם דאטה-סנטר.
+
+זה **המסלול המהיר והמומלץ** ולא דורש פרוקסי בכלל. הכתובת נשלחת ב-`/api/start`
+תחת `resolved`:
+```json
+{
+  "title": "...", "format": "video", "quality": "1080",
+  "resolved": {
+    "video":    {"url": "https://...googlevideo.com/videoplayback?...", "ext": "mp4"},
+    "audio":    {"url": "https://...googlevideo.com/videoplayback?...", "ext": "m4a"},
+    "subtitle": {"url": "https://...", "ext": "vtt"}
+  }
+}
+```
+- `format: "audio"` צריך רק `resolved.audio`.
+- אם הווידאו הוא פורמט "progressive" (כבר עם אודיו מוטמע — יש כאלה עד
+  720p) — משמיטים את `resolved.audio` והשרת לא ממזג, רק שומר את הקובץ כמו שהוא.
+- `resolved.subtitle` אופציונלי, מוטמע בקובץ הסופי.
+
+**⚠️ החלק שחסר: זה דורש שינוי בתוסף עצמו** (קוד ה-content script /
+background.js) — לחלץ את הקישורים האלה מהעמוד ולשלוח אותם ב-`resolved`
+במקום רק `url`. קוד התוסף (`background.js`, `manifest.json`,
+`offscreen.js`) **לא נמצא בריפו הזה** — רק קוד השרת. אם תרצה, צרף את ריפו
+התוסף לסשן ואבנה גם את הצד הזה; או תגיד לי איפה הוא ואני אמשיך.
+
+**מסלול 2 — `yt-dlp` על השרת עצמו (`url`, גיבוי, דורש פרוקסי).** לשימוש
+כשאין `resolved` בבקשה — למשל אם התוסף עדיין לא עודכן, או שמישהו מדביק
+קישור בלי לפתוח טאב. כאן זה **השרת** שמנסה להתחזות ליוטיוב, ולכן הוא חייב
+להתמודד עם כל ההגנות: PO Token, טביעת TLS, ובעיקר IP של דאטה-סנטר — יוטיוב
+מזהה IP של Oracle/AWS/DigitalOcean מיידית בלי קשר לשאר. שכבות ההגנה שמופעלות
+כאן:
 
 | מנגנון הגנה | איך השרת מתמודד |
 |---|---|
-| טביעת אצבע TLS | `SAVEBRIDGE_IMPERSONATE=chrome` (ברירת מחדל) — משתמש ב-`curl_cffi` כדי שה-handshake ייראה בדיוק כמו Chrome אמיתי |
-| PO Token / Botguard | סיידקאר `bgutil-provider` (Docker, מותקן ע"י `setup-oracle.sh`) שמנפיק טוקנים תקפים בזמן אמת; yt-dlp מוצא אותו לבד ב-`127.0.0.1:4416` |
-| קליינט ה-API | `SAVEBRIDGE_PLAYER_CLIENTS=web,ios,android` (ברירת מחדל) — קליינטים של מובייל תלויים פחות ב-PO Token מלא מקליינט ה-web |
-| IP דאטה-סנטר | **חובה פרוקסי** — גם עם כל השכבות למעלה, IP של Oracle/AWS/DigitalOcean מסומן כחשוד. הגדר `SAVEBRIDGE_PROXY_URL` לפרוקסי residential/mobile |
+| טביעת אצבע TLS | `SAVEBRIDGE_IMPERSONATE=chrome` (ברירת מחדל) — `curl_cffi`, ה-handshake נראה כמו Chrome אמיתי |
+| PO Token / Botguard | סיידקאר `bgutil-provider` (Docker, מותקן ע"י `setup-oracle.sh`), yt-dlp מוצא אותו לבד ב-`127.0.0.1:4416` |
+| קליינט ה-API | `SAVEBRIDGE_PLAYER_CLIENTS=web,ios,android` (ברירת מחדל) — קליינטים של מובייל תלויים פחות ב-PO Token מלא |
+| IP דאטה-סנטר | **חובה פרוקסי** — הגדר `SAVEBRIDGE_PROXY_URL` לפרוקסי residential/mobile |
 
-**הגדרת הפרוקסי** — ב-`/etc/systemd/system/savebridge.service` (או ב-`.env`
-במצב מקומי), הוסף:
-
+**הגדרת הפרוקסי** (למסלול 2 בלבד) — ב-`/etc/systemd/system/savebridge.service`:
 ```
 Environment=SAVEBRIDGE_PROXY_URL=http://user:pass@residential-proxy-host:port
 ```
-
 תומך גם ב-`socks5://`. אחרי שינוי: `sudo systemctl restart savebridge`.
 ספקי פרוקסי residential/mobile נפוצים: Webshare, IPRoyal, Bright Data,
-Oxylabs — כל אחד עם תמחור שונה, לרוב לפי GB. פרוקסי datacenter רגיל (לא
-residential) **לא יעזור** — הוא ייחסם באותה צורה.
+Oxylabs — תשלום, לרוב לפי GB. פרוקסי datacenter רגיל **לא יעזור** — ייחסם
+באותה צורה.
 
-אפשר לבדוק את התצורה בלי לחשוף את כתובת הפרוקסי עצמה:
+אפשר לבדוק תצורה בלי לחשוף את כתובת הפרוקסי עצמה:
 ```bash
 curl http://127.0.0.1:8723/api/ping
 # {"ytDlp":"...", "ffmpeg":true, "proxy":true, "impersonate":"chrome", "playerClients":["web","ios","android"]}
@@ -128,5 +166,6 @@ curl http://127.0.0.1:8723/api/ping
 . .venv/bin/activate
 python tests/test_crypto_matches_extension.py   # תואמות פורמט ההצפנה של התוסף
 python tests/test_server_file_flow.py            # מחזור עבודה + הזרמת קובץ
-python tests/test_ytdlp_opts.py                  # חיווט proxy/impersonate/player_clients
+python tests/test_ytdlp_opts.py                  # חיווט proxy/impersonate/player_clients (מסלול 2)
+python tests/test_resolved_download.py           # הורדה מקישורים מוכנים + מיזוג ffmpeg (מסלול 1)
 ```
