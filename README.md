@@ -32,7 +32,8 @@ uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
 ```
 
 בתוסף: הפנה את `SERVER_URL` אל `http://127.0.0.1:8723` (ראה "שינויים בתוסף").
-במצב מקומי אין צורך בהצפנה — ההעברה כולה בתוך המחשב.
+במצב מקומי אין צורך בהצפנה — ההעברה כולה בתוך המחשב. אין צורך גם בפרוקסי:
+ה-IP שלך כבר ביתי, לא דאטה-סנטר.
 
 ## פריסה על שרת מרוחק (Oracle Cloud Always Free)
 
@@ -77,6 +78,37 @@ uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
    });
    ```
 
+## למה חובה פרוקסי, ואיך זה עובד
+
+יוטיוב חוסמת שרתים לא רק לפי עוגיות — היא בודקת גם PO Token (Botguard), את
+כתובת ה-IP (דאטה-סנטר מזוהה מיידית), ואת טביעת האצבע של חיבור ה-TLS. השרת
+כאן מטפל בשלוש השכבות האלה:
+
+| מנגנון הגנה | איך השרת מתמודד |
+|---|---|
+| טביעת אצבע TLS | `SAVEBRIDGE_IMPERSONATE=chrome` (ברירת מחדל) — משתמש ב-`curl_cffi` כדי שה-handshake ייראה בדיוק כמו Chrome אמיתי |
+| PO Token / Botguard | סיידקאר `bgutil-provider` (Docker, מותקן ע"י `setup-oracle.sh`) שמנפיק טוקנים תקפים בזמן אמת; yt-dlp מוצא אותו לבד ב-`127.0.0.1:4416` |
+| קליינט ה-API | `SAVEBRIDGE_PLAYER_CLIENTS=web,ios,android` (ברירת מחדל) — קליינטים של מובייל תלויים פחות ב-PO Token מלא מקליינט ה-web |
+| IP דאטה-סנטר | **חובה פרוקסי** — גם עם כל השכבות למעלה, IP של Oracle/AWS/DigitalOcean מסומן כחשוד. הגדר `SAVEBRIDGE_PROXY_URL` לפרוקסי residential/mobile |
+
+**הגדרת הפרוקסי** — ב-`/etc/systemd/system/savebridge.service` (או ב-`.env`
+במצב מקומי), הוסף:
+
+```
+Environment=SAVEBRIDGE_PROXY_URL=http://user:pass@residential-proxy-host:port
+```
+
+תומך גם ב-`socks5://`. אחרי שינוי: `sudo systemctl restart savebridge`.
+ספקי פרוקסי residential/mobile נפוצים: Webshare, IPRoyal, Bright Data,
+Oxylabs — כל אחד עם תמחור שונה, לרוב לפי GB. פרוקסי datacenter רגיל (לא
+residential) **לא יעזור** — הוא ייחסם באותה צורה.
+
+אפשר לבדוק את התצורה בלי לחשוף את כתובת הפרוקסי עצמה:
+```bash
+curl http://127.0.0.1:8723/api/ping
+# {"ytDlp":"...", "ffmpeg":true, "proxy":true, "impersonate":"chrome", "playerClients":["web","ios","android"]}
+```
+
 ## נטפרי (רק אם בחרת בשרת מרוחק)
 
 נטפרי מסננת לפי דומיין, אז דומיין חדש ייחסם עד שתבקש להוסיף אותו לרשימה הלבנה
@@ -96,4 +128,5 @@ uvicorn savebridge_server.server:app --host 127.0.0.1 --port 8723
 . .venv/bin/activate
 python tests/test_crypto_matches_extension.py   # תואמות פורמט ההצפנה של התוסף
 python tests/test_server_file_flow.py            # מחזור עבודה + הזרמת קובץ
+python tests/test_ytdlp_opts.py                  # חיווט proxy/impersonate/player_clients
 ```

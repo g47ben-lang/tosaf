@@ -24,6 +24,25 @@ CANCELLED = "cancelled"
 
 _EXT_BY_FORMAT = {"audio": "mp3", "low_phone": "3gp"}
 
+# Anti-bot-detection config, read fresh from the environment on every
+# download so a systemd `Environment=` change just needs a restart, no
+# code change. See README for what each one does.
+_DEFAULT_PLAYER_CLIENTS = "web,ios,android"
+
+
+def _proxy_from_env() -> Optional[str]:
+    return os.environ.get("SAVEBRIDGE_PROXY_URL") or None
+
+
+def _impersonate_from_env() -> Optional[str]:
+    return os.environ.get("SAVEBRIDGE_IMPERSONATE", "chrome") or None
+
+
+def _player_clients_from_env() -> Optional[list[str]]:
+    raw = os.environ.get("SAVEBRIDGE_PLAYER_CLIENTS", _DEFAULT_PLAYER_CLIENTS)
+    clients = [c.strip() for c in raw.split(",") if c.strip()]
+    return clients or None
+
 
 def _human_speed(bps: Optional[float]) -> Optional[str]:
     if not bps or bps <= 0:
@@ -186,6 +205,9 @@ class JobManager:
             outtmpl=outtmpl,
             cookiefile=cookiefile,
             progress_hook=self._progress_hook(job),
+            proxy=_proxy_from_env(),
+            impersonate=_impersonate_from_env(),
+            player_clients=_player_clients_from_env(),
         )
 
         with yt_dlp.YoutubeDL(opts) as ydl:

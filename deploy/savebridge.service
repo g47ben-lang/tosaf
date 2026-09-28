@@ -18,6 +18,19 @@ Restart=on-failure
 RestartSec=3
 # Optional: set a fixed token shared with nothing else.
 # Environment=SAVEBRIDGE_TOKEN=change-me
+#
+# A datacenter IP (this VM's) gets flagged by YouTube regardless of cookies
+# or PO Tokens, so a residential/mobile proxy is required for reliable
+# downloads from a cloud VM. user:pass@host:port form, http(s):// or
+# socks5://.
+# Environment=SAVEBRIDGE_PROXY_URL=http://user:pass@residential-proxy-host:port
+#
+# TLS fingerprint to impersonate (requires curl_cffi, in requirements.txt).
+# Environment=SAVEBRIDGE_IMPERSONATE=chrome
+#
+# Comma-separated YouTube API clients to try, in order. Mobile clients rely
+# less on a full Botguard PO Token than the web client does.
+# Environment=SAVEBRIDGE_PLAYER_CLIENTS=web,ios,android
 
 [Install]
 WantedBy=multi-user.target

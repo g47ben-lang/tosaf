@@ -2,3 +2,9 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 yt-dlp>=2024.1.0
 cryptography>=42.0
+# TLS fingerprint impersonation (mimics real Chrome's TLS/HTTP2 handshake).
+curl_cffi>=0.7
+# PO Token provider plugin for yt-dlp; talks to the bgutil sidecar server
+# (see deploy/setup-oracle.sh) at http://127.0.0.1:4416. Degrades gracefully
+# if the sidecar isn't running.
+bgutil-ytdlp-pot-provider>=1

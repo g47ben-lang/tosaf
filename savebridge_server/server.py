@@ -51,10 +51,15 @@ async def hello() -> JSONResponse:
 
 @app.get("/api/ping")
 async def ping() -> JSONResponse:
+    from .jobs import _impersonate_from_env, _player_clients_from_env, _proxy_from_env
+
     return JSONResponse(
         {
             "ytDlp": getattr(yt_dlp.version, "__version__", "unknown"),
             "ffmpeg": bool(shutil.which("ffmpeg")),
+            "proxy": bool(_proxy_from_env()),
+            "impersonate": _impersonate_from_env(),
+            "playerClients": _player_clients_from_env(),
         }
     )
 

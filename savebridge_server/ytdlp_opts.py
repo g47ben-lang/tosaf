@@ -13,7 +13,9 @@ The extension sends these presets (see the original extension code):
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Sequence
+
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 
 def _height_cap(quality: str) -> Optional[int]:
@@ -47,8 +49,19 @@ def build_ydl_opts(
     outtmpl: str,
     cookiefile: Optional[str],
     progress_hook,
+    proxy: Optional[str] = None,
+    impersonate: Optional[str] = None,
+    player_clients: Optional[Sequence[str]] = None,
 ) -> dict:
-    """Return an options dict for yt_dlp.YoutubeDL(...)."""
+    """Return an options dict for yt_dlp.YoutubeDL(...).
+
+    proxy / impersonate / player_clients are the anti-bot-detection knobs:
+    a datacenter IP alone gets flagged by YouTube regardless of cookies, so
+    `proxy` should point at a residential/mobile proxy; `impersonate` makes
+    the TLS/HTTP2 handshake match a real browser (needs curl_cffi); and
+    `player_clients` picks which YouTube API clients to try (mobile clients
+    are less dependent on a full Botguard PO Token than the web client).
+    """
     opts: dict = {
         "outtmpl": outtmpl,
         "noprogress": True,
@@ -62,6 +75,17 @@ def build_ydl_opts(
     }
     if cookiefile:
         opts["cookiefile"] = cookiefile
+
+    if proxy:
+        opts["proxy"] = proxy
+
+    if impersonate:
+        target = ImpersonateTarget.from_str(impersonate)
+        if target:
+            opts["impersonate"] = target
+
+    if player_clients:
+        opts["extractor_args"] = {"youtube": {"player_client": list(player_clients)}}
 
     postprocessors: list[dict] = []
 

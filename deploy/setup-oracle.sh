@@ -16,6 +16,19 @@ python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
 ./.venv/bin/pip install -r requirements.txt
 
+echo "==> Installing Docker (for the PO Token sidecar)"
+if ! command -v docker >/dev/null 2>&1; then
+	sudo apt-get install -y docker.io
+	sudo systemctl enable --now docker
+	sudo usermod -aG docker "$(whoami)" || true
+fi
+
+echo "==> Starting bgutil PO Token provider sidecar (127.0.0.1:4416)"
+sudo docker rm -f bgutil-provider >/dev/null 2>&1 || true
+sudo docker run -d --name bgutil-provider --restart unless-stopped \
+	-p 127.0.0.1:4416:4416 --init \
+	brainicism/bgutil-ytdlp-pot-provider
+
 echo "==> Installing systemd service"
 sudo cp deploy/savebridge.service /etc/systemd/system/savebridge.service
 # point the unit at this checkout and the current user
@@ -26,5 +39,9 @@ sudo systemctl enable --now savebridge
 
 echo
 echo "Server is running on 127.0.0.1:8723 (behind Caddy for https)."
+echo "PO Token sidecar is running on 127.0.0.1:4416 (docker ps to check)."
 echo "Next: install Caddy, edit deploy/Caddyfile with your domain, and run it."
-echo "Update yt-dlp any time with:  ./.venv/bin/pip install -U yt-dlp"
+echo "Set SAVEBRIDGE_PROXY_URL in /etc/systemd/system/savebridge.service to a"
+echo "residential/mobile proxy — a datacenter IP gets flagged by YouTube even"
+echo "with valid cookies and a PO Token. Then: sudo systemctl restart savebridge"
+echo "Update yt-dlp any time with:  ./.venv/bin/pip install -U yt-dlp bgutil-ytdlp-pot-provider"
